@@ -1,0 +1,114 @@
+package com.logisparktech.parkingmanagementsystem.presentation.recent_tickets
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.logisparktech.parkingmanagementsystem.data.local.entities.TicketEntity
+import com.logisparktech.parkingmanagementsystem.domain.use_case.GetAllTicketsUseCase
+import com.logisparktech.parkingmanagementsystem.domain.use_case.SyncParkingSalesUseCase
+import com.logisparktech.parkingmanagementsystem.core.printer.PrinterManager
+import com.logisparktech.parkingmanagementsystem.domain.repository.RateRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import javax.inject.Inject
+
+@HiltViewModel
+class RecentTicketsViewModel @Inject constructor(
+    private val getAllTicketsUseCase: GetAllTicketsUseCase,
+    private val syncParkingSalesUseCase: SyncParkingSalesUseCase,
+    private val printerManager: PrinterManager,
+    private val rateRepository: RateRepository
+) : ViewModel() {
+
+    private val _tickets = MutableStateFlow<List<TicketEntity>>(emptyList())
+    val tickets: StateFlow<List<TicketEntity>> = _tickets.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _syncEvent = MutableSharedFlow<SyncResult>()
+    val syncEvent = _syncEvent.asSharedFlow()
+
+    init {
+        loadTickets()
+    }
+
+    private fun loadTickets() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _tickets.value = getAllTicketsUseCase().sortedByDescending { it.entryTime }
+            _isLoading.value = false
+        }
+    }
+
+    fun refreshTickets() {
+        loadTickets()
+    }
+
+    fun syncTickets() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            val result = syncParkingSalesUseCase()
+            if (result.isSuccess) {
+                _syncEvent.emit(SyncResult.Success)
+                loadTickets()
+            } else {
+                _syncEvent.emit(SyncResult.Error(result.exceptionOrNull()?.message ?: "Sync failed"))
+            }
+            _isLoading.value = false
+        }
+    }
+
+    fun reprintTicket(ticket: TicketEntity) {
+        viewModelScope.launch {
+            val entryDate =
+                SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date(ticket.entryTime))
+            val entryTime =
+                SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(ticket.entryTime))
+
+            val rate = rateRepository.getRateById(ticket.rateId)
+            val vehicleType = rate?.vehicleType ?: "Unknown"
+
+            if (ticket.isClosed && ticket.exitTime != null) {
+                val exitDate =
+                    SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date(ticket.exitTime))
+                val exitTime =
+                    SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(ticket.exitTime))
+
+                printerManager.printReceipt(
+                    branchName = "", // Branch name is handled inside PrinterManager or can be passed if needed
+                    vehicleNumber = ticket.vehicleNumber,
+                    entryDate = entryDate,
+                    entryTime = entryTime,
+                    exitDate = exitDate,
+                    exitTime = exitTime,
+                    amount = ticket.amount,
+                    ticketId = ticket.ticketId,
+                    duration = null // Duration can be calculated if needed
+                )
+            } else {
+                printerManager.printTicket(
+                    branchName = "",
+                    ticketId = ticket.ticketId,
+                    vehicleNumber = ticket.vehicleNumber,
+                    vehicleType = vehicleType,
+                    entryDate = entryDate,
+                    entryTime = entryTime,
+                    qrCodeContent = ticket.ticketId
+                )
+            }
+        }
+    }
+}
+
+sealed class SyncResult {
+    object Success : SyncResult()
+    data class Error(val message: String) : SyncResult()
+}
