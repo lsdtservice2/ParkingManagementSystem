@@ -16,6 +16,44 @@
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Hilt
+-keep class com.logisparktech.parkingmanagementsystem.Hilt_* { *; }
+-keep class *_HiltModules* { *; }
+-keep class *__Hilt* { *; }
+
+# Room
+-keep class * extends androidx.room.RoomDatabase
+-dontwarn androidx.room.paging.**
+
+# Retrofit
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-keepattributes RuntimeInvisibleAnnotations, RuntimeInvisibleParameterAnnotations
+-keep class retrofit2.** { *; }
+-keepclasseswithmembers class * {
+    @retrofit2.http.* <methods>;
+}
+
+# Gson
+-keep class com.google.gson.** { *; }
+-keep class com.logisparktech.parkingmanagementsystem.data.remote.dto.** { *; }
+-keepclassmembers class com.logisparktech.parkingmanagementsystem.data.remote.dto.** { *; }
+
+
+# OkHttp
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+-dontwarn org.conscrypt.**
+
+# WorkManager
+-keep class androidx.work.Worker { *; }
+-keep class androidx.work.impl.WorkerWrapper { *; }
+
+# CameraX
+-keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
+
+# ML Kit
+-keep class com.google.mlkit.** { *; }
+-dontwarn com.google.mlkit.**

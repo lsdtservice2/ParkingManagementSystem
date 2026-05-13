@@ -24,7 +24,7 @@ class LoginViewModel @Inject constructor(
     private val _state = MutableStateFlow<LoginState>(LoginState.Idle)
     val state: StateFlow<LoginState> = _state.asStateFlow()
 
-    fun login(username: String, password: String) {
+    fun login(contact: String, password: String) {
         viewModelScope.launch {
             _state.value = LoginState.Loading
 
@@ -32,7 +32,7 @@ class LoginViewModel @Inject constructor(
             ticketRepository.deleteClosedAndSyncedTickets()
             rateRepository.clearAllRates()
 
-            val result = loginUseCase(username, password)
+            val result = loginUseCase(contact, password)
             result.onSuccess { response ->
                 val userData = response.data
                 if (userData != null) {

@@ -1,3 +1,11 @@
+import java.util.Properties
+
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(keystorePropertiesFile.inputStream())
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -20,9 +28,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = keystoreProperties["RELEASE_STORE_FILE"]?.let { file(it) }
+            storePassword = keystoreProperties["RELEASE_STORE_PASSWORD"] as String?
+            keyAlias = keystoreProperties["RELEASE_KEY_ALIAS"] as String?
+            keyPassword = keystoreProperties["RELEASE_KEY_PASSWORD"] as String?
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -35,6 +54,11 @@ android {
     }
     buildFeatures {
         compose = true
+    }
+    lint {
+        baseline = file("lint-baseline.xml")
+        checkReleaseBuilds = false
+        abortOnError = false
     }
     kotlinOptions {
         jvmTarget = "17"

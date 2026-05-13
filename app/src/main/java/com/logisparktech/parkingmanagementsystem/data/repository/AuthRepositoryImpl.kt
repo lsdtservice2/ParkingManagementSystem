@@ -10,23 +10,9 @@ import javax.inject.Inject
 class AuthRepositoryImpl @Inject constructor(
     private val apiService: ApiService
 ) : AuthRepository {
-    override suspend fun login(username: String, password: String): Result<LoginResponse> {
-//        if (username == "admin" && password == "admin") {
-//            return Result.success(
-//                LoginResponse(
-//                    success = "true",
-//                    message = "Login successful",
-//                    data = UserData(
-//                        name = "Admin User",
-//                        contact = "1234567890",
-//                        branch = "Main Branch",
-//                        code = "ADM001"
-//                    )
-//                )
-//            )
-//        }
+    override suspend fun login(contact: String, password: String): Result<LoginResponse> {
         return try {
-            val response = apiService.login(LoginRequest(username, password))
+            val response = apiService.login(LoginRequest(contact, password))
             if (response.isSuccessful && response.body() != null) {
                 val loginResponse = response.body()!!
                 if (loginResponse.success == "true") {

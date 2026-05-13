@@ -25,7 +25,7 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    var username by remember { mutableStateOf("") }
+    var contact by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -101,9 +101,9 @@ fun LoginScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     OutlinedTextField(
-                        value = username,
-                        onValueChange = { username = it },
-                        label = { Text("Username") },
+                        value = contact,
+                        onValueChange = { contact = it },
+                        label = { Text("Contact Number") },
                         leadingIcon = {
                             Icon(Icons.Default.Person, contentDescription = null)
                         },
@@ -139,7 +139,7 @@ fun LoginScreen(
                     Spacer(modifier = Modifier.height(32.dp))
 
                     Button(
-                        onClick = { viewModel.login(username, password) },
+                        onClick = { viewModel.login(contact, password) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(56.dp),
