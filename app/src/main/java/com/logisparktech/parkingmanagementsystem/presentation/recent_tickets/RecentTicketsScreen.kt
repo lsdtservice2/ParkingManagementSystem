@@ -46,6 +46,7 @@ fun RecentTicketsScreen(
     )
 
     LaunchedEffect(Unit) {
+        viewModel.refreshTickets()
         viewModel.syncEvent.collect { result ->
             when (result) {
                 is SyncResult.Success -> {
