@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.LocalParking
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,6 +51,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.logisparktech.parkingmanagementsystem.core.worker.SyncReminderWorker
+import com.logisparktech.parkingmanagementsystem.presentation.profile.ProfileScreen
 import java.util.concurrent.TimeUnit
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
@@ -58,7 +60,9 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
     data object Exit : Screen("exit", "Exit", Icons.Default.QrCodeScanner)
     data object Rate : Screen("rate", "Rate", Icons.Default.DirectionsCar)
     data object RecentTicket : Screen("recent_ticket", "Tickets", Icons.Default.ConfirmationNumber)
+    data object Profile : Screen("profile", "Profile", Icons.Default.Person)
 }
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
@@ -107,7 +111,8 @@ fun ParkingApp(preferenceManager: PreferenceManager) {
         Screen.Entry.route,
         Screen.Exit.route,
         Screen.Rate.route,
-        Screen.RecentTicket.route
+        Screen.RecentTicket.route,
+        Screen.Profile.route
     )
 
     Scaffold(
@@ -160,6 +165,16 @@ fun ParkingApp(preferenceManager: PreferenceManager) {
                 val viewModel: RecentTicketsViewModel = hiltViewModel()
                 RecentTicketsScreen(viewModel = viewModel)
             }
+
+            composable(Screen.Profile.route) {
+                ProfileScreen(
+                    onLogout = {
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            }
         }
     }
 }
@@ -171,7 +186,8 @@ fun BottomNavigationBar(navController: NavHostController) {
         Screen.Entry,
         Screen.Exit,
         Screen.Rate,
-        Screen.RecentTicket
+        Screen.RecentTicket,
+        Screen.Profile
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
