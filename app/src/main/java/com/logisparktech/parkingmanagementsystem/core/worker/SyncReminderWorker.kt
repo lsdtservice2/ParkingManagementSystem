@@ -19,8 +19,8 @@ class SyncReminderWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
-        val unsyncedTickets = ticketRepository.getUnsyncedClosedTickets()
-        
+//        val unsyncedTickets = ticketRepository.getUnsyncedClosedTickets()
+        val unsyncedTickets = ticketRepository.getUnsyncedTickets()
         if (unsyncedTickets.isNotEmpty()) {
             Handler(Looper.getMainLooper()).post {
                 Toast.makeText(

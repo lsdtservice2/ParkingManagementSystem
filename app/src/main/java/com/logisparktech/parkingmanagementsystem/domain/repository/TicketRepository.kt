@@ -12,4 +12,8 @@ interface TicketRepository {
     suspend fun syncTicketsToServer(): Result<Unit>
     suspend fun getAllTickets(): List<TicketEntity>
     suspend fun deleteClosedAndSyncedTickets()
+
+    suspend fun getUnsyncedTickets(): List<TicketEntity>
+
+    suspend fun getUnsyncedCount(): Int
 }

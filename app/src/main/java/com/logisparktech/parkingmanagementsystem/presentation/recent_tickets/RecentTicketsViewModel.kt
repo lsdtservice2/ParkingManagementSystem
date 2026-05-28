@@ -30,6 +30,9 @@ class RecentTicketsViewModel @Inject constructor(
     private val _tickets = MutableStateFlow<List<TicketEntity>>(emptyList())
     val tickets: StateFlow<List<TicketEntity>> = _tickets.asStateFlow()
 
+    private val _rateTypeMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    val rateTypeMap: StateFlow<Map<String, String>> = _rateTypeMap.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -38,6 +41,7 @@ class RecentTicketsViewModel @Inject constructor(
 
     init {
         loadTickets()
+        loadRates()
     }
 
     private fun loadTickets() {
@@ -47,9 +51,16 @@ class RecentTicketsViewModel @Inject constructor(
             _isLoading.value = false
         }
     }
+    private fun loadRates() {
+        viewModelScope.launch {
+            val rates = rateRepository.getAllRates()
+            _rateTypeMap.value = rates.associate { it.rateId to it.vehicleType }
+        }
+    }
 
     fun refreshTickets() {
         loadTickets()
+        loadRates()
     }
 
     fun syncTickets() {

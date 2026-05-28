@@ -38,4 +38,12 @@ interface TicketDao {
 
     @Query("DELETE FROM tickets WHERE isClosed = 1 AND isSynced = 1")
     suspend fun deleteClosedAndSyncedTickets()
+
+    // unsynced tickets
+    @Query("SELECT * FROM tickets WHERE isSynced = 0")
+    suspend fun getUnsyncedTickets(): List<TicketEntity>
+
+    // unsynced tickets count
+    @Query("SELECT COUNT(*) FROM tickets WHERE isSynced = 0")
+    suspend fun getUnsyncedCount(): Int
 }

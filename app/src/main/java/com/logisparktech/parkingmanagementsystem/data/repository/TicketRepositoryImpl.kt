@@ -39,6 +39,9 @@ class TicketRepositoryImpl @Inject constructor(
     override suspend fun getUnsyncedClosedTickets(): List<TicketEntity> {
         return ticketDao.getUnsyncedClosedTickets()
     }
+    override suspend fun getUnsyncedTickets(): List<TicketEntity> {
+        return ticketDao.getUnsyncedTickets()
+    }
 
     override suspend fun markTicketAsSynced(ticketId: String) {
         ticketDao.markTicketAsSynced(ticketId)
@@ -46,19 +49,24 @@ class TicketRepositoryImpl @Inject constructor(
 
     override suspend fun syncTicketsToServer(): Result<Unit> {
         return try {
-            val unsyncedTickets = ticketDao.getUnsyncedClosedTickets()
+       //     // Now fetches Closed unsynced tickets
+//            val unsyncedTickets = ticketDao.getUnsyncedClosedTickets()
+//            if (unsyncedTickets.isEmpty()) return Result.success(Unit)
+//
+            // Now fetches both Active and Closed unsynced tickets
+            val unsyncedTickets = ticketDao.getUnsyncedTickets()
             if (unsyncedTickets.isEmpty()) return Result.success(Unit)
 
             val branch = preferenceManager.getBranch()
             val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
             val shortDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-            
+
             val requests = unsyncedTickets.map { entity ->
                 val rateEntity = rateDao.getRateById(entity.rateId)
-                
+
                 val entryDate = Date(entity.entryTime)
-                val exitDate = entity.exitTime?.let { Date(it) } ?: Date()
-                
+//                val exitDate = entity.exitTime?.let { Date(it) } ?: Date()
+
                 val durationMillis = (entity.exitTime ?: System.currentTimeMillis()) - entity.entryTime
                 val hours = durationMillis / (1000 * 60 * 60)
                 val minutes = (durationMillis / (1000 * 60)) % 60
@@ -103,4 +111,9 @@ class TicketRepositoryImpl @Inject constructor(
     override suspend fun deleteClosedAndSyncedTickets() {
         ticketDao.deleteClosedAndSyncedTickets()
     }
+
+    override suspend fun getUnsyncedCount(): Int {
+        return ticketDao.getUnsyncedCount()
+    }
+
 }

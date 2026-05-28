@@ -233,7 +233,7 @@ fun ExitScreen(
                                     vehicleNumber = ticket.vehicleNumber,
                                     entryTime = ticket.entryTime,
                                     onCloseTicket = { viewModel.closeTicket(ticket.ticketId) },
-                                    isLoading = uiState is ExitViewModel.ExitUiState.Loading
+                                    isLoading = false
                                 )
                             }
                         }

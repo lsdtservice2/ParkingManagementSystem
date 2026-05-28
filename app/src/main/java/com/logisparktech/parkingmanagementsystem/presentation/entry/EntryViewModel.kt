@@ -1,6 +1,5 @@
 package com.logisparktech.parkingmanagementsystem.presentation.entry
 
-import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.logisparktech.parkingmanagementsystem.data.local.entities.RateEntity
@@ -9,12 +8,12 @@ import com.logisparktech.parkingmanagementsystem.data.local.preferences.Preferen
 import com.logisparktech.parkingmanagementsystem.domain.use_case.CreateTicketUseCase
 import com.logisparktech.parkingmanagementsystem.domain.use_case.GetRatesUseCase
 import com.logisparktech.parkingmanagementsystem.domain.use_case.SyncRatesUseCase
+import com.logisparktech.parkingmanagementsystem.domain.use_case.GetUnsyncedCountUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import java.util.UUID
 import javax.inject.Inject
 
 import com.logisparktech.parkingmanagementsystem.core.printer.PrinterManager
@@ -25,6 +24,7 @@ import java.util.Locale
 @HiltViewModel
 class EntryViewModel @Inject constructor(
     private val createTicketUseCase: CreateTicketUseCase,
+    private val getUnsyncedCountUseCase: GetUnsyncedCountUseCase, // Add this use case
     private val getRatesUseCase: GetRatesUseCase,
     private val syncRatesUseCase: SyncRatesUseCase,
     private val preferenceManager: PreferenceManager,
@@ -40,18 +40,28 @@ class EntryViewModel @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _unsyncedCount = MutableStateFlow(0)
+    val unsyncedCount: StateFlow<Int> = _unsyncedCount.asStateFlow()
+
     init {
         syncAndLoadRates()
+        updateUnsyncedCount()
+    }
+
+    private fun updateUnsyncedCount() {
+        viewModelScope.launch {
+            _unsyncedCount.value = getUnsyncedCountUseCase()
+        }
     }
 
     private fun syncAndLoadRates() {
         viewModelScope.launch {
             _uiState.value = EntryUiState.Loading
-            
+
             // Load from local DB first to show data quickly
             val localRates = getRatesUseCase()
             _rates.value = localRates
-            
+
             // If local data is empty, try to sync from remote
             if (localRates.isEmpty()) {
                 val branch = preferenceManager.getBranch()
@@ -62,7 +72,7 @@ class EntryViewModel @Inject constructor(
                     }
                 }
             }
-            
+
             _uiState.value = EntryUiState.Idle
         }
     }
@@ -76,9 +86,18 @@ class EntryViewModel @Inject constructor(
     }
 
     fun createTicket(vehicleNumber: String, rateId: String) {
-        android.util.Log.d("EntryViewModel", "createTicket called with: $vehicleNumber, $rateId")
+//        android.util.Log.d("EntryViewModel", "createTicket called with: $vehicleNumber, $rateId")
         viewModelScope.launch {
             _uiState.value = EntryUiState.Loading
+
+            val unsyncedCount = getUnsyncedCountUseCase()
+            if (unsyncedCount >= 1000) {
+                _uiState.value =
+                    EntryUiState.Error("Sync limit reached (1000 tickets). Please sync data from Tickets screen.")
+                return@launch
+            }
+
+
             val ticketId = preferenceManager.generateTicketCode()
             val ticket = TicketEntity(
                 ticketId = ticketId,
@@ -92,7 +111,7 @@ class EntryViewModel @Inject constructor(
             )
             try {
                 createTicketUseCase(ticket)
-                
+
                 // Print Ticket
                 val selectedRate = _rates.value.find { it.rateId == rateId }
                 val dateSdf = SimpleDateFormat("yyyy MMM dd", Locale.US)
@@ -109,7 +128,7 @@ class EntryViewModel @Inject constructor(
                     entryTime = entryTime,
                     qrCodeContent = ticketId
                 )
-
+                updateUnsyncedCount()
                 _uiState.value = EntryUiState.Success
             } catch (e: Exception) {
                 _uiState.value = EntryUiState.Error(e.message ?: "Failed to create ticket")

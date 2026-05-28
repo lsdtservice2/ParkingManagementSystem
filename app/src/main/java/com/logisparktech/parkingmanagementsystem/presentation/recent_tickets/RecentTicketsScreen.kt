@@ -16,9 +16,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.logisparktech.parkingmanagementsystem.R
 import com.logisparktech.parkingmanagementsystem.data.local.entities.TicketEntity
 import java.text.SimpleDateFormat
 import java.util.*
@@ -28,12 +31,14 @@ import java.util.*
 fun RecentTicketsScreen(
     viewModel: RecentTicketsViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val tickets by viewModel.tickets.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var showReprintDialog by remember { mutableStateOf(false) }
     var selectedTicket by remember { mutableStateOf<TicketEntity?>(null) }
+    val rateTypeMap by viewModel.rateTypeMap.collectAsState()
     
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isLoading,
@@ -44,10 +49,10 @@ fun RecentTicketsScreen(
         viewModel.syncEvent.collect { result ->
             when (result) {
                 is SyncResult.Success -> {
-                    snackbarHostState.showSnackbar("Data synced successfully")
+                    snackbarHostState.showSnackbar(context.getString(R.string.sync_success))
                 }
                 is SyncResult.Error -> {
-                    snackbarHostState.showSnackbar("Sync failed: ${result.message}")
+                    snackbarHostState.showSnackbar(context.getString(R.string.sync_failed, result.message))
                 }
             }
         }
@@ -59,7 +64,7 @@ fun RecentTicketsScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        "Recent Tickets",
+                        stringResource(R.string.recent_tickets),
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -83,7 +88,7 @@ fun RecentTicketsScreen(
                         } else {
                             Icon(
                                 imageVector = Icons.Default.Sync,
-                                contentDescription = "Sync Tickets",
+                                contentDescription = stringResource(R.string.sync_tickets),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -110,8 +115,10 @@ fun RecentTicketsScreen(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     items(tickets) { ticket ->
+                        val vehicleType = rateTypeMap[ticket.rateId] ?: ""
                         TicketCard(
                             ticket = ticket,
+                            vehicleType = vehicleType,
                             onClick = {
                                 if (!ticket.isClosed) {
                                     selectedTicket = ticket
@@ -131,12 +138,12 @@ fun RecentTicketsScreen(
                     onDismissRequest = { showReprintDialog = false },
                     title = {
                         Text(
-                            text = "Reprint Ticket",
+                            text = stringResource(R.string.reprint_ticket),
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     },
                     text = {
-                        Text("Do you want to reprint the parking ticket for ${selectedTicket?.vehicleNumber}?")
+                        Text(stringResource(R.string.reprint_confirm_msg, selectedTicket?.vehicleNumber ?: ""))
                     },
                     confirmButton = {
                         Button(
@@ -146,12 +153,12 @@ fun RecentTicketsScreen(
                             },
                             shape = RoundedCornerShape(8.dp)
                         ) {
-                            Text("Reprint")
+                            Text(stringResource(R.string.reprint))
                         }
                     },
                     dismissButton = {
                         TextButton(onClick = { showReprintDialog = false }) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.cancel))
                         }
                     }
                 )
@@ -170,8 +177,15 @@ fun RecentTicketsScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TicketCard(ticket: TicketEntity, onClick: () -> Unit) {
+fun TicketCard(ticket: TicketEntity,vehicleType: String, onClick: () -> Unit) {
     val sdf = SimpleDateFormat("dd MMM, hh:mm:ss a", Locale.getDefault())
+    val icon = when (vehicleType.lowercase()) {
+        "car", "four wheeler", "4 wheeler" -> Icons.Default.DirectionsCar
+        "bike", "two wheeler", "2 wheeler", "cycle" -> Icons.Default.TwoWheeler
+        "auto", "rickshaw" -> Icons.Default.ElectricRickshaw
+        "bus", "truck", "heavy" -> Icons.Default.BusAlert
+        else -> if (ticket.isClosed) Icons.Default.CheckCircle else Icons.Default.DirectionsCar
+    }
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -197,7 +211,8 @@ fun TicketCard(ticket: TicketEntity, onClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = if (ticket.isClosed) Icons.Default.CheckCircle else Icons.Default.DirectionsCar,
+//                    imageVector = if (ticket.isClosed) Icons.Default.CheckCircle else Icons.Default.DirectionsCar,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = if (ticket.isClosed) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
@@ -212,13 +227,13 @@ fun TicketCard(ticket: TicketEntity, onClick: () -> Unit) {
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "In: ${sdf.format(Date(ticket.entryTime))}",
+                    text = stringResource(R.string.in_label, sdf.format(Date(ticket.entryTime))),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (ticket.isClosed && ticket.exitTime != null) {
                     Text(
-                        text = "Out: ${sdf.format(Date(ticket.exitTime))}",
+                        text = stringResource(R.string.out_label, sdf.format(Date(ticket.exitTime))),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -228,7 +243,7 @@ fun TicketCard(ticket: TicketEntity, onClick: () -> Unit) {
             Column(horizontalAlignment = Alignment.End) {
                 if (ticket.isClosed) {
                     Text(
-                        text = "रु.${ticket.amount.toInt()}",
+                        text = stringResource(R.string.amount_format, ticket.amount.toInt()),
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.secondary
@@ -241,7 +256,7 @@ fun TicketCard(ticket: TicketEntity, onClick: () -> Unit) {
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
-                            text = if (ticket.isSynced) "Synced" else "Pending",
+                            text = if (ticket.isSynced) stringResource(R.string.status_synced) else stringResource(R.string.status_pending),
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (ticket.isSynced) Color(0xFF2E7D32) else Color(0xFFEF6C00)
@@ -253,7 +268,7 @@ fun TicketCard(ticket: TicketEntity, onClick: () -> Unit) {
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
-                            text = "Active",
+                            text = stringResource(R.string.status_active),
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
@@ -281,7 +296,7 @@ fun EmptyTicketsView() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No tickets found",
+            text = stringResource(R.string.no_tickets_found),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.outline
         )
