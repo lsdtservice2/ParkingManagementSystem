@@ -228,11 +228,13 @@ fun ExitScreen(
                         if (uiState is ExitViewModel.ExitUiState.Found) {
                             item {
                                 // Results Section (kept tight, no forced empty space)
-                                val ticket = (uiState as ExitViewModel.ExitUiState.Found).ticket
+                                val foundState = uiState as ExitViewModel.ExitUiState.Found
                                 TicketDetailsCard(
-                                    vehicleNumber = ticket.vehicleNumber,
-                                    entryTime = ticket.entryTime,
-                                    onCloseTicket = { viewModel.closeTicket(ticket.ticketId) },
+                                    vehicleNumber = foundState.ticket.vehicleNumber,
+                                    entryTime = foundState.ticket.entryTime,
+                                    duration = foundState.duration,
+                                    amount = foundState.estimatedAmount,
+                                    onCloseTicket = { viewModel.closeTicket(foundState.ticket.ticketId) },
                                     isLoading = false
                                 )
                             }
@@ -290,6 +292,8 @@ fun ExitScreen(
 fun TicketDetailsCard(
     vehicleNumber: String,
     entryTime: Long,
+    duration: String,
+    amount: Double,
     onCloseTicket: () -> Unit,
     isLoading: Boolean
 ) {
@@ -360,8 +364,38 @@ fun TicketDetailsCard(
                     label = "Entry Time",
                     value = entryTimeStr
                 )
+                Spacer(modifier = Modifier.height(6.dp))
+                TicketInfoRow(
+                    icon = Icons.Default.Timer,
+                    label = "Duration",
+                    value = duration
+                )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Divider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Amount to Pay",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Rs. ${String.format(Locale.US, "%.2f", amount)}",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
                     onClick = onCloseTicket,

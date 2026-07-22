@@ -82,7 +82,8 @@ class PreferenceManager @Inject constructor(
         val nextToken = getTokenNumber() + 1
         saveTokenNumber(nextToken)
         val branchCode = getBranchCode().ifBlank { "BR" }
-        return "$branchCode-SR-$nextToken"
+        val timeSuffix = System.currentTimeMillis().toString().takeLast(4)
+        return "$branchCode-SR-$timeSuffix-$nextToken"
     }
 
     fun saveLastSync(timestamp: String) {

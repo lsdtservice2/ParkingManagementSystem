@@ -70,7 +70,8 @@ class ExitViewModel @Inject constructor(
                         ticket = ticket,
                         vehicleType = vehicleType,
                         duration = durationStr,
-                        estimatedAmount = estimatedAmount
+                        estimatedAmount = estimatedAmount,
+                        exitTime = now
                     )
                 }
             } else {
@@ -84,9 +85,15 @@ class ExitViewModel @Inject constructor(
     }
 
     fun closeTicket(ticketId: String) {
+        val currentState = _uiState.value
+        val exitTime = if (currentState is ExitUiState.Found && currentState.ticket.ticketId == ticketId) {
+            currentState.exitTime
+        } else {
+            System.currentTimeMillis()
+        }
+
         viewModelScope.launch {
             _uiState.value = ExitUiState.Loading
-            val exitTime = System.currentTimeMillis()
             val result = closeTicketUseCase(ticketId, exitTime)
             result.onSuccess { closedTicket ->
                 val dateSdf = SimpleDateFormat("yyyy MMM dd", Locale.US)
@@ -126,7 +133,8 @@ class ExitViewModel @Inject constructor(
             val ticket: TicketEntity,
             val vehicleType: String,
             val duration: String,
-            val estimatedAmount: Double
+            val estimatedAmount: Double,
+            val exitTime: Long
         ) : ExitUiState()
         object Success : ExitUiState()
         data class Error(val message: String) : ExitUiState()

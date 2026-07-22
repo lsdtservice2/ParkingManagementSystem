@@ -20,6 +20,7 @@ import com.logisparktech.parkingmanagementsystem.core.printer.PrinterManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 @HiltViewModel
 class EntryViewModel @Inject constructor(
@@ -85,65 +86,133 @@ class EntryViewModel @Inject constructor(
         }
     }
 
+    //    fun createTicket(vehicleNumber: String, rateId: String) {
+////        android.util.Log.d("EntryViewModel", "createTicket called with: $vehicleNumber, $rateId")
+//        viewModelScope.launch {
+//            _uiState.value = EntryUiState.Loading
+//
+//            val unsyncedCount = getUnsyncedCountUseCase()
+//            if (unsyncedCount >= 1000) {
+//                _uiState.value =
+//                    EntryUiState.Error("Sync limit reached (1000 tickets). Please sync data from Tickets screen.")
+//                return@launch
+//            }
+//
+//
+//            val ticketId = preferenceManager.generateTicketCode()
+//            val ticket = TicketEntity(
+//                ticketId = ticketId,
+//                vehicleNumber = vehicleNumber,
+//                entryTime = System.currentTimeMillis(),
+//                exitTime = null,
+//                rateId = rateId,
+//                isClosed = false,
+//                amount = 0.0,
+//                isSynced = false
+//            )
+//            try {
+//                createTicketUseCase(ticket)
+//
+//                // Print Ticket
+//                val selectedRate = _rates.value.find { it.rateId == rateId }
+//                val dateSdf = SimpleDateFormat("yyyy MMM dd", Locale.US)
+//                val timeSdf = SimpleDateFormat("hh:mm:ss a", Locale.US)
+//                val entryDate = dateSdf.format(Date(ticket.entryTime))
+//                val entryTime = timeSdf.format(Date(ticket.entryTime))
+//
+//                printerManager.printTicket(
+//                    branchName = preferenceManager.getBranch(),
+//                    ticketId = ticketId,
+//                    vehicleNumber = vehicleNumber,
+//                    vehicleType = selectedRate?.vehicleType ?: "Unknown",
+//                    entryDate = entryDate,
+//                    entryTime = entryTime,
+//                    qrCodeContent = ticketId
+//                )
+//                updateUnsyncedCount()
+//                _uiState.value = EntryUiState.Success
+//            } catch (e: Exception) {
+//                _uiState.value = EntryUiState.Error(e.message ?: "Failed to create ticket")
+//            }
+//        }
+//    }
     fun createTicket(vehicleNumber: String, rateId: String) {
-//        android.util.Log.d("EntryViewModel", "createTicket called with: $vehicleNumber, $rateId")
+        if (vehicleNumber.isBlank()) {
+            _uiState.value = EntryUiState.Error("Please enter vehicle number")
+            return
+        }
+
         viewModelScope.launch {
+            if (_uiState.value is EntryUiState.Loading) return@launch
             _uiState.value = EntryUiState.Loading
 
-            val unsyncedCount = getUnsyncedCountUseCase()
-            if (unsyncedCount >= 1000) {
-                _uiState.value =
-                    EntryUiState.Error("Sync limit reached (1000 tickets). Please sync data from Tickets screen.")
-                return@launch
-            }
-
-
-            val ticketId = preferenceManager.generateTicketCode()
-            val ticket = TicketEntity(
-                ticketId = ticketId,
-                vehicleNumber = vehicleNumber,
-                entryTime = System.currentTimeMillis(),
-                exitTime = null,
-                rateId = rateId,
-                isClosed = false,
-                amount = 0.0,
-                isSynced = false
-            )
             try {
+                // 1. Validate Rate exists before doing anything
+                val selectedRate = _rates.value.find { it.rateId == rateId }
+                    ?: throw Exception("Invalid Vehicle Type selected. Please refresh rates.")
+
+                val unsyncedCount = getUnsyncedCountUseCase()
+                if (unsyncedCount >= 1000) {
+                    _uiState.value = EntryUiState.Error("Sync limit reached. Please sync data first.")
+                    return@launch
+                }
+
+                val currentTime = System.currentTimeMillis()
+                val ticketId = preferenceManager.generateTicketCode()
+
+                val ticket = TicketEntity(
+                    ticketId = ticketId,
+                    vehicleNumber = vehicleNumber.trim().uppercase(Locale.US),
+                    entryTime = currentTime,
+                    exitTime = null,
+                    rateId = rateId,
+                    isClosed = false,
+                    amount = 0.0,
+                    isSynced = false
+                )
+
+                // 2. Perform DB Insertion
                 createTicketUseCase(ticket)
 
-                // Print Ticket
-                val selectedRate = _rates.value.find { it.rateId == rateId }
-                val dateSdf = SimpleDateFormat("yyyy MMM dd", Locale.US)
-                val timeSdf = SimpleDateFormat("hh:mm:ss a", Locale.US)
-                val entryDate = dateSdf.format(Date(ticket.entryTime))
-                val entryTime = timeSdf.format(Date(ticket.entryTime))
+                // 3. Attempt Printing
+                try {
+                    val nepalTimeZone = TimeZone.getTimeZone("Asia/Kathmandu")
+                    val dateSdf = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = nepalTimeZone }
+                    val timeSdf = SimpleDateFormat("hh:mm:ss a", Locale.US).apply { timeZone = nepalTimeZone }
 
-                printerManager.printTicket(
-                    branchName = preferenceManager.getBranch(),
-                    ticketId = ticketId,
-                    vehicleNumber = vehicleNumber,
-                    vehicleType = selectedRate?.vehicleType ?: "Unknown",
-                    entryDate = entryDate,
-                    entryTime = entryTime,
-                    qrCodeContent = ticketId
-                )
+                    printerManager.printTicket(
+                        branchName = preferenceManager.getBranch(),
+                        ticketId = ticketId,
+                        vehicleNumber = ticket.vehicleNumber,
+                        vehicleType = selectedRate.vehicleType,
+                        entryDate = dateSdf.format(Date(currentTime)),
+                        entryTime = timeSdf.format(Date(currentTime)),
+                        qrCodeContent = ticketId
+                    )
+                } catch (printError: Exception) {
+                    // IMPORTANT: Ticket is saved, but print failed.
+                    // Inform user so they don't try to recreate it.
+                    _uiState.value = EntryUiState.Error("Ticket saved (#$ticketId) but Printer Failed: ${printError.message}")
+                    updateUnsyncedCount()
+                    return@launch
+                }
+
                 updateUnsyncedCount()
-                _uiState.value = EntryUiState.Success
+                _uiState.value = EntryUiState.Success(ticketId)
+
             } catch (e: Exception) {
                 _uiState.value = EntryUiState.Error(e.message ?: "Failed to create ticket")
             }
         }
     }
-
     fun resetState() {
         _uiState.value = EntryUiState.Idle
     }
 
     sealed class EntryUiState {
-        object Idle : EntryUiState()
-        object Loading : EntryUiState()
-        object Success : EntryUiState()
+        data object Idle : EntryUiState()
+        data object Loading : EntryUiState()
+        data class Success(val ticketId: String) : EntryUiState()
         data class Error(val message: String) : EntryUiState()
     }
 }

@@ -29,4 +29,11 @@ interface RateDao {
 
     @Query("DELETE FROM rates WHERE rateId = :rateId")
     suspend fun deleteRateById(rateId: String)
+
+    @androidx.room.Transaction
+    suspend fun refreshRates(rates: List<RateEntity>) {
+        clearAllRates()
+        insertAllRates(rates)
+    }
+
 }

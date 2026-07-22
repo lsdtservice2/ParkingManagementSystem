@@ -94,7 +94,10 @@ fun EntryScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(
+                    top = paddingValues.calculateTopPadding(),
+                    bottom = 0.dp,
+                )
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -274,6 +277,7 @@ fun EntryScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .padding(bottom = 6.dp)
                                 .height(64.dp),
                             shape = RoundedCornerShape(20.dp),
                             enabled = vehicleNumber.isNotBlank() && selectedRate != null && uiState !is EntryViewModel.EntryUiState.Loading,
