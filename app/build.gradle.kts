@@ -16,7 +16,7 @@ plugins {
 
 android {
     namespace = "com.logisparktech.parkingmanagementsystem"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.logisparktech.parkingmanagementsystem"
@@ -66,6 +66,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

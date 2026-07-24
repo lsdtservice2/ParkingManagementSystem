@@ -3,6 +3,7 @@ package com.logisparktech.parkingmanagementsystem.presentation.login
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
@@ -14,6 +15,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -102,14 +105,20 @@ fun LoginScreen(
                 ) {
                     OutlinedTextField(
                         value = contact,
-                        onValueChange = { contact = it },
-                        label = { Text("Contact Number") },
+                        onValueChange = {
+                            // Optional: allow only digits
+                            contact = it.filter { char -> char.isDigit() }
+                        },                        label = { Text("Contact Number") },
                         leadingIcon = {
                             Icon(Icons.Default.Person, contentDescription = null)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        singleLine = true
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Phone, // or KeyboardType.Number
+                            imeAction = ImeAction.Done
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))

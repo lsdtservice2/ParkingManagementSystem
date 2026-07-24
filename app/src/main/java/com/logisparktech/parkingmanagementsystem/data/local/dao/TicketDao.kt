@@ -18,8 +18,8 @@ interface TicketDao {
     @Query("SELECT * FROM tickets WHERE ticketId = :ticketId")
     suspend fun getTicketById(ticketId: String): TicketEntity?
 
-    @Query("SELECT * FROM tickets WHERE vehicleNumber = :vehicleNumber AND isClosed = 0")
-    suspend fun getActiveTicketByVehicleNumber(vehicleNumber: String): TicketEntity?
+    @Query("SELECT * FROM tickets WHERE vehicleNumber LIKE '%' || :vehicleNumber || '%' AND isClosed = 0")
+    suspend fun getActiveTicketByVehicleNumber(vehicleNumber: String): List<TicketEntity>
 
     @Query("UPDATE tickets SET exitTime = :exitTime, amount = :amount, isClosed = 1, isSynced = 0 WHERE ticketId = :ticketId")
     suspend fun closeTicket(ticketId: String, exitTime: Long, amount: Double)

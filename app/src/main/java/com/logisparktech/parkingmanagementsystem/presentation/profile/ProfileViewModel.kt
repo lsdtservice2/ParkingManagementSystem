@@ -27,9 +27,7 @@ class ProfileViewModel @Inject constructor(
     private fun loadUserProfile() {
         _uiState.value = ProfileUiState(
             userName = preferenceManager.getName(),
-            userContact = preferenceManager.getContact(),
-            branchName = preferenceManager.getBranch(),
-            branchCode = preferenceManager.getBranchCode()
+            userContact = preferenceManager.getContact()
         )
     }
 
@@ -46,7 +44,5 @@ class ProfileViewModel @Inject constructor(
 
 data class ProfileUiState(
     val userName: String = "",
-    val userContact: String = "",
-    val branchName: String = "",
-    val branchCode: String = ""
+    val userContact: String = ""
 )

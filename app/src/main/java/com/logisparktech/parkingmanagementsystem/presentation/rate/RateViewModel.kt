@@ -14,8 +14,7 @@ import javax.inject.Inject
 @HiltViewModel
 class RateViewModel @Inject constructor(
     private val getRatesUseCase: GetRatesUseCase,
-    private val syncRatesUseCase: com.logisparktech.parkingmanagementsystem.domain.use_case.SyncRatesUseCase,
-    private val preferenceManager: com.logisparktech.parkingmanagementsystem.data.local.preferences.PreferenceManager
+    private val syncRatesUseCase: com.logisparktech.parkingmanagementsystem.domain.use_case.SyncRatesUseCase
 ) : ViewModel() {
 
     private val _rates = MutableStateFlow<List<RateEntity>>(emptyList())
@@ -39,8 +38,7 @@ class RateViewModel @Inject constructor(
     fun syncRates() {
         viewModelScope.launch {
             _isLoading.value = true
-            val branch = preferenceManager.getBranch()
-            val result = syncRatesUseCase(branch.ifBlank { "MAIN" })
+            val result = syncRatesUseCase("MAIN")
             if (result.isSuccess) {
                 _rates.value = getRatesUseCase()
             }

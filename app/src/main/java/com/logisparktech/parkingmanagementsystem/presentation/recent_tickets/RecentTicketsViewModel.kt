@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import javax.inject.Inject
 
 @HiltViewModel
@@ -53,8 +54,7 @@ class RecentTicketsViewModel @Inject constructor(
                 if (query.isBlank()) all
                 else all.filter { ticket ->
                     ticket.vehicleNumber.contains(query, ignoreCase = true) ||
-                    ticket.ticketId.contains(query, ignoreCase = true) ||
-                    (_rateTypeMap.value[ticket.rateId] ?: "").contains(query, ignoreCase = true)
+                    ticket.ticketId.contains(query, ignoreCase = true)
                 }
             }.collect { filtered ->
                 _tickets.value = filtered
@@ -102,22 +102,25 @@ class RecentTicketsViewModel @Inject constructor(
 
     fun reprintTicket(ticket: TicketEntity) {
         viewModelScope.launch {
-            val entryDate =
-                SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date(ticket.entryTime))
-            val entryTime =
-                SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(ticket.entryTime))
+            val nepalTimeZone = TimeZone.getTimeZone("Asia/Kathmandu")
+            val dateSdf = SimpleDateFormat("dd-MM-yyyy", Locale.US).apply {
+                timeZone = nepalTimeZone
+            }
+            val timeSdf = SimpleDateFormat("hh:mm a",Locale.US).apply {
+                timeZone = nepalTimeZone
+            }
+
+            val entryDate = dateSdf.format(Date(ticket.entryTime))
+            val entryTime = timeSdf.format(Date(ticket.entryTime))
 
             val rate = rateRepository.getRateById(ticket.rateId)
             val vehicleType = rate?.vehicleType ?: "Unknown"
 
             if (ticket.isClosed && ticket.exitTime != null) {
-                val exitDate =
-                    SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date(ticket.exitTime))
-                val exitTime =
-                    SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date(ticket.exitTime))
+                val exitDate = dateSdf.format(Date(ticket.exitTime))
+                val exitTime = timeSdf.format(Date(ticket.exitTime))
 
                 printerManager.printReceipt(
-                    branchName = "", // Branch name is handled inside PrinterManager or can be passed if needed
                     vehicleNumber = ticket.vehicleNumber,
                     entryDate = entryDate,
                     entryTime = entryTime,
@@ -129,7 +132,6 @@ class RecentTicketsViewModel @Inject constructor(
                 )
             } else {
                 printerManager.printTicket(
-                    branchName = "",
                     ticketId = ticket.ticketId,
                     vehicleNumber = ticket.vehicleNumber,
                     vehicleType = vehicleType,

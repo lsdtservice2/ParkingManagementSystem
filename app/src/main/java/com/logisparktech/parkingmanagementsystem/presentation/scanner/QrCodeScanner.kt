@@ -54,7 +54,7 @@ fun QrCodeScanner(
     var torchEnabled by remember { mutableStateOf(false) }
     var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
     val hasScanned = remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+//    val scope = rememberCoroutineScope()
 
     val scanner = remember {
         BarcodeScanning.getClient(

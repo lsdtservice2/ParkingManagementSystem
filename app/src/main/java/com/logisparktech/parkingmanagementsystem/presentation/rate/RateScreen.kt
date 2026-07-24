@@ -18,13 +18,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.logisparktech.parkingmanagementsystem.data.local.entities.RateEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RateScreen(
-    viewModel: RateViewModel = hiltViewModel()
+    viewModel: RateViewModel
 ) {
     val rates by viewModel.rates.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()

@@ -59,7 +59,6 @@ class PrinterManager @Inject constructor(
     }
 
     fun printTicket(
-        branchName: String,
         ticketId: String,
         vehicleNumber: String,
         vehicleType: String,
@@ -128,7 +127,6 @@ class PrinterManager @Inject constructor(
     }
 
     fun printReceipt(
-        branchName: String,
         vehicleNumber: String,
         entryDate: String,
         entryTime: String,

@@ -7,7 +7,7 @@ import javax.inject.Inject
 class GetActiveTicketUseCase @Inject constructor(
     private val repository: TicketRepository
 ) {
-    suspend operator fun invoke(vehicleNumber: String): TicketEntity? {
+    suspend operator fun invoke(vehicleNumber: String): List<TicketEntity> {
         return repository.getActiveTicketByVehicleNumber(vehicleNumber)
     }
 }

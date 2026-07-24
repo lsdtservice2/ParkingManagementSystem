@@ -30,7 +30,7 @@ class TicketRepositoryImpl @Inject constructor(
         return ticketDao.getTicketById(ticketId)
     }
 
-    override suspend fun getActiveTicketByVehicleNumber(vehicleNumber: String): TicketEntity? {
+    override suspend fun getActiveTicketByVehicleNumber(vehicleNumber: String): List<TicketEntity> {
         return ticketDao.getActiveTicketByVehicleNumber(vehicleNumber)
     }
 
@@ -53,6 +53,7 @@ class TicketRepositoryImpl @Inject constructor(
     override suspend fun syncTicketsToServer(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val unsyncedTickets = ticketDao.getUnsyncedTickets()
+//            val unsyncedTickets = ticketDao.getUnsyncedClosedTickets()
             if (unsyncedTickets.isEmpty()) return@withContext Result.success(Unit)
 
             // OPTIMIZATION: Fetch all rates once into a map

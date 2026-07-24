@@ -65,12 +65,9 @@ class EntryViewModel @Inject constructor(
 
             // If local data is empty, try to sync from remote
             if (localRates.isEmpty()) {
-                val branch = preferenceManager.getBranch()
-                if (branch.isNotEmpty()) {
-                    val result = syncRatesUseCase(branch)
-                    if (result.isSuccess) {
-                        _rates.value = getRatesUseCase()
-                    }
+                val result = syncRatesUseCase("MAIN")
+                if (result.isSuccess) {
+                    _rates.value = getRatesUseCase()
                 }
             }
 
@@ -181,7 +178,6 @@ class EntryViewModel @Inject constructor(
                     val timeSdf = SimpleDateFormat("hh:mm:ss a", Locale.US).apply { timeZone = nepalTimeZone }
 
                     printerManager.printTicket(
-                        branchName = preferenceManager.getBranch(),
                         ticketId = ticketId,
                         vehicleNumber = ticket.vehicleNumber,
                         vehicleType = selectedRate.vehicleType,

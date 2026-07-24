@@ -144,7 +144,12 @@ fun ExitScreen(
                                     OutlinedTextField(
                                         value = vehicleNumber,
                                         onValueChange = { vehicleNumber = it.uppercase() },
-                                        placeholder = { Text("Enter Vehicle Number") },
+                                        placeholder = {
+                                            Text(
+                                                "Enter Vehicle/Ticket Number",
+                                                fontSize = 13.sp
+                                            )
+                                        },
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(16.dp),
                                         leadingIcon = {
@@ -226,15 +231,16 @@ fun ExitScreen(
                         }
 
                         if (uiState is ExitViewModel.ExitUiState.Found) {
-                            item {
-                                // Results Section (kept tight, no forced empty space)
-                                val foundState = uiState as ExitViewModel.ExitUiState.Found
+                            val foundState = uiState as ExitViewModel.ExitUiState.Found
+                            items(foundState.tickets) { data ->
                                 TicketDetailsCard(
-                                    vehicleNumber = foundState.ticket.vehicleNumber,
-                                    entryTime = foundState.ticket.entryTime,
-                                    duration = foundState.duration,
-                                    amount = foundState.estimatedAmount,
-                                    onCloseTicket = { viewModel.closeTicket(foundState.ticket.ticketId) },
+                                    ticketId = data.ticket.ticketId,
+                                    vehicleNumber = data.ticket.vehicleNumber,
+                                    vehicleType = data.vehicleType,
+                                    entryTime = data.ticket.entryTime,
+                                    duration = data.duration,
+                                    amount = data.estimatedAmount,
+                                    onCloseTicket = { viewModel.closeTicket(data.ticket.ticketId) },
                                     isLoading = false
                                 )
                             }
@@ -290,15 +296,24 @@ fun ExitScreen(
 
 @Composable
 fun TicketDetailsCard(
+    ticketId: String,
     vehicleNumber: String,
+    vehicleType: String,
     entryTime: Long,
     duration: String,
     amount: Double,
     onCloseTicket: () -> Unit,
     isLoading: Boolean
 ) {
-    val sdf = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault())
-    val stf = SimpleDateFormat("hh:mm:ss a", Locale.getDefault())
+    val nepalTimeZone = TimeZone.getTimeZone("Asia/Kathmandu")
+
+    val sdf = SimpleDateFormat("EEE, dd MMM yyyy", Locale.US).apply {
+        timeZone = nepalTimeZone
+    }
+
+    val stf = SimpleDateFormat("hh:mm:ss a", Locale.US).apply {
+        timeZone = nepalTimeZone
+    }
     val entryDate = sdf.format(Date(entryTime))
     val entryTimeStr = stf.format(Date(entryTime))
 
@@ -333,12 +348,12 @@ fun TicketDetailsCard(
                 ) {
                     Column {
                         Text(
-                            text = "TICKET DETAILS",
+                            text = "TICKET DETAILS - $ticketId",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                         )
                         Text(
-                            text = vehicleNumber,
+                            text = "$vehicleNumber ($vehicleType)",
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onPrimary
                         )
@@ -352,7 +367,14 @@ fun TicketDetailsCard(
                 }
             }
 
-            Column(modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 8.dp)) {
+            Column(
+                modifier = Modifier.padding(
+                    start = 14.dp,
+                    end = 14.dp,
+                    top = 14.dp,
+                    bottom = 8.dp
+                )
+            ) {
                 TicketInfoRow(
                     icon = Icons.Default.CalendarToday,
                     label = "Entry Date",

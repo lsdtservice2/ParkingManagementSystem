@@ -20,12 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel = hiltViewModel(),
+    viewModel: ProfileViewModel,
     onLogout: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -57,6 +56,12 @@ fun ProfileScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(24.dp),
+//                .padding(
+//                    top = padding.calculateTopPadding(),
+//                    bottom = 0.dp,
+//                    start = 24.dp,
+//                    end = 24.dp
+//                ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Profile Icon
@@ -100,27 +105,6 @@ fun ProfileScreen(
                         icon = Icons.Default.Phone,
                         label = "Contact",
                         value = uiState.userContact
-                    )
-
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        thickness = 0.5.dp
-                    )
-                    ProfileDetailItem(
-                        icon = Icons.Default.LocalParking,
-//                        label = "Branch Name",
-                        label = "Location Name",
-                        value = uiState.branchName
-                    )
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 12.dp),
-                        thickness = 0.5.dp
-                    )
-                    ProfileDetailItem(
-                        icon = Icons.Default.Badge,
-//                        label = "Branch Code",
-                        label = "Location Code",
-                        value = uiState.branchCode
                     )
                 }
             }

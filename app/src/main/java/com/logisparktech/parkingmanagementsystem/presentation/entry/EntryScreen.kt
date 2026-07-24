@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -45,6 +46,7 @@ fun EntryScreen(
     var vehicleNumber by remember { mutableStateOf("") }
     var selectedRate by remember { mutableStateOf<RateEntity?>(null) }
     val unsyncedCount by viewModel.unsyncedCount.collectAsState()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LaunchedEffect(uiState) {
         if (uiState is EntryViewModel.EntryUiState.Success) {
@@ -171,7 +173,7 @@ fun EntryScreen(
                                         vehicleNumber = filtered.uppercase()
                                     },
                                     label = { Text("Vehicle Number") },
-                                    placeholder = { Text("e.g. MH 12 AB 1234") },
+                                    placeholder = { Text("e.g. B AA 1234") },
                                     leadingIcon = {
                                         Icon(
                                             imageVector = Icons.Default.ConfirmationNumber,
@@ -220,7 +222,10 @@ fun EntryScreen(
                                         VehicleTypeCard(
                                             rate = rate,
                                             isSelected = selectedRate == rate,
-                                            onClick = { selectedRate = rate }
+                                            onClick = {
+                                                selectedRate = rate
+                                                keyboardController?.hide()
+                                            }
                                         )
                                     }
                                 }

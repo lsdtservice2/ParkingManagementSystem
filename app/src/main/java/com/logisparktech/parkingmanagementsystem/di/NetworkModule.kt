@@ -32,7 +32,8 @@ object NetworkModule {
     @Singleton
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
-        preferenceManager: PreferenceManager
+        preferenceManager: PreferenceManager,
+        authEventManager: com.logisparktech.parkingmanagementsystem.core.auth.AuthEventManager
     ): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
@@ -43,7 +44,13 @@ object NetworkModule {
                 if (token.isNotEmpty()) {
                     requestBuilder.header("Authorization", "Bearer $token")
                 }
-                chain.proceed(requestBuilder.build())
+                val response = chain.proceed(requestBuilder.build())
+                
+                if (response.code == 401) {
+                    preferenceManager.clear()
+                    authEventManager.onUnauthorized()
+                }
+                response
             }
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
