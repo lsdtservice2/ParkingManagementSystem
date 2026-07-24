@@ -5,7 +5,7 @@ import com.logisparktech.parkingmanagementsystem.data.local.dao.TicketDao
 import com.logisparktech.parkingmanagementsystem.data.local.entities.TicketEntity
 import com.logisparktech.parkingmanagementsystem.data.local.preferences.PreferenceManager
 import com.logisparktech.parkingmanagementsystem.data.remote.ApiService
-import com.logisparktech.parkingmanagementsystem.data.remote.dto.ParkingSaleRequest
+import com.logisparktech.parkingmanagementsystem.data.remote.dto.ParkingTicketRequest
 import com.logisparktech.parkingmanagementsystem.domain.repository.TicketRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -50,114 +50,55 @@ class TicketRepositoryImpl @Inject constructor(
         ticketDao.markTicketAsSynced(ticketId)
     }
 
-//    override suspend fun syncTicketsToServer(): Result<Unit> {
-//        return try {
-//       //     // Now fetches Closed unsynced tickets
-////            val unsyncedTickets = ticketDao.getUnsyncedClosedTickets()
-////            if (unsyncedTickets.isEmpty()) return Result.success(Unit)
-////
-//            // Now fetches both Active and Closed unsynced tickets
-//            val unsyncedTickets = ticketDao.getUnsyncedTickets()
-//            if (unsyncedTickets.isEmpty()) return Result.success(Unit)
-//
-//            val branch = preferenceManager.getBranch()
-//            val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault())
-//            val shortDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-//
-//            val requests = unsyncedTickets.map { entity ->
-//                val rateEntity = rateDao.getRateById(entity.rateId)
-//
-//                val entryDate = Date(entity.entryTime)
-////                val exitDate = entity.exitTime?.let { Date(it) } ?: Date()
-//
-//                val durationMillis = (entity.exitTime ?: System.currentTimeMillis()) - entity.entryTime
-//                val hours = durationMillis / (1000 * 60 * 60)
-//                val minutes = (durationMillis / (1000 * 60)) % 60
-//                val durationStr = String.format("%d.%02d", hours, minutes)
-//
-//                ParkingSaleRequest(
-//                    ticketCode = entity.ticketId,
-//                    vehicleNo = entity.vehicleNumber,
-//                    tokenNo = entity.ticketId.substringAfterLast("-"),
-//                    inTime = isoFormat.format(entryDate),
-//                    outTime = entity.exitTime?.let { isoFormat.format(Date(it)) } ?: "",
-//                    rate = rateEntity?.pricePerHour ?: 0.0,
-//                    amount = entity.amount,
-//                    duration = durationStr,
-//                    createdAt = shortDateFormat.format(entryDate)
-//                )
-//            }
-//
-//            val response = apiService.syncParkingSales(branch, requests)
-//            if (response.isSuccessful) {
-//                val body = response.body()
-//                if (body?.success == "true") {
-//                    unsyncedTickets.forEach {
-//                        ticketDao.markTicketAsSynced(it.ticketId)
-//                    }
-//                    Result.success(Unit)
-//                } else {
-//                    Result.failure(Exception(body?.message ?: "Sync failed: server returned success=false"))
-//                }
-//            } else {
-//                Result.failure(Exception(response.message()))
-//            }
-//        } catch (e: Exception) {
-//            Result.failure(e)
-//        }
-//    }
-
     override suspend fun syncTicketsToServer(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val unsyncedTickets = ticketDao.getUnsyncedTickets()
             if (unsyncedTickets.isEmpty()) return@withContext Result.success(Unit)
 
-            val branch = preferenceManager.getBranch()
-
             // OPTIMIZATION: Fetch all rates once into a map
             val allRates = rateDao.getAllRates().associateBy { it.rateId }
 
-            // PRODUCTION: Use consistent TimeZone (UTC) and Locale (US)
-            val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
-                timeZone = TimeZone.getTimeZone("Asia/Kathmandu")
-            }
-            val shortDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+            // Use consistent TimeZone (Kathmandu) and ISO format
+            val isoFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply {
                 timeZone = TimeZone.getTimeZone("Asia/Kathmandu")
             }
 
-            val requests = unsyncedTickets.map { entity ->
+            var lastError: String? = null
+
+            for (entity in unsyncedTickets) {
                 val rateEntity = allRates[entity.rateId]
                 val entryDate = Date(entity.entryTime)
+                val exitDate = entity.exitTime?.let { Date(it) }
+
                 val durationMillis =
                     (entity.exitTime ?: System.currentTimeMillis()) - entity.entryTime
-                val hours = durationMillis / (1000 * 60 * 60)
-                val minutes = (durationMillis / (1000 * 60)) % 60
-                val durationStr = String.format(Locale.US, "%d.%02d", hours, minutes)
+                val totalHours = durationMillis.toDouble() / (1000.0 * 60.0 * 60.0)
 
-                ParkingSaleRequest(
-                    ticketCode = entity.ticketId,
-                    vehicleNo = entity.vehicleNumber,
-                    tokenNo = entity.ticketId.substringAfterLast("-"),
-                    inTime = isoFormat.format(entryDate),
-                    outTime = entity.exitTime?.let { isoFormat.format(Date(it)) } ?: "",
-                    rate = rateEntity?.pricePerHour ?: 0.0,
-                    amount = entity.amount,
-                    duration = durationStr,
-                    createdAt = shortDateFormat.format(entryDate)
+                val request = ParkingTicketRequest(
+                    ticketNumber = entity.ticketId,
+                    vehicleType = rateEntity?.vehicleType ?: "",
+                    vehicleNumber = entity.vehicleNumber,
+                    tokenNumber = entity.ticketId.substringAfterLast("-"),
+                    checkInTime = isoFormat.format(entryDate),
+                    checkOutTime = exitDate?.let { isoFormat.format(it) } ?: "",
+                    hourlyRate = rateEntity?.pricePerHour ?: 0.0,
+                    totalHours = String.format(Locale.US, "%.2f", totalHours).toDouble(),
+                    totalAmountPaid = entity.amount
                 )
+
+                val response = apiService.syncParkingTicket(request)
+                val body = response.body()
+                if (response.isSuccessful && body != null && body.success) {
+                    ticketDao.markTicketAsSynced(entity.ticketId)
+                } else {
+                    lastError = body?.message ?: "Sync failed for ticket ${entity.ticketId}: ${response.code()}"
+                }
             }
 
-            val response = apiService.syncParkingSales(branch, requests)
-            val body = response.body()
-            if (response.isSuccessful && body != null) {
-                if (body.success == "true") {
-                    unsyncedTickets.forEach { ticketDao.markTicketAsSynced(it.ticketId) }
-                    Result.success(Unit)
-                } else {
-                    Result.failure(Exception(body.message))
-                }
+            if (lastError != null) {
+                Result.failure(Exception(lastError))
             } else {
-                Result.failure(Exception("Sync failed: ${response.code()}"))
+                Result.success(Unit)
             }
         } catch (e: Exception) {
             Result.failure(e)

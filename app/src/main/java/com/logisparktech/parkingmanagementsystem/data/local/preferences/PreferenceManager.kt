@@ -14,22 +14,19 @@ class PreferenceManager @Inject constructor(
     private val sharedPreferences: SharedPreferences =
         context.getSharedPreferences("parking_prefs", Context.MODE_PRIVATE)
 
-    fun saveUserData(name: String, contact: String, branch: String, code: String) {
+    fun saveUserData(token: String, name: String, contact: String) {
         sharedPreferences.edit {
+            putString("access_token", token)
             putString("user_name", name)
             putString("user_contact", contact)
-            putString("user_branch", branch)
-            putString("user_code", code)
-            putLong("login_timestamp", System.currentTimeMillis())
+//            putLong("login_timestamp", System.currentTimeMillis())
         }
     }
 
-//    fun isLoggedIn(): Boolean {
-//        val loginTime = sharedPreferences.getLong("login_timestamp", 0L)
-//        val currentTime = System.currentTimeMillis()
-//        // Check if logged in and not expired (e.g., within last 30 days)
-//        return loginTime > 0 && (currentTime - loginTime) < (30L * 24 * 60 * 60 * 1000)
-//    }
+    fun getAccessToken(): String {
+        return sharedPreferences.getString("access_token", "") ?: ""
+    }
+
     fun isLoggedIn(): Boolean {
         val loginTime = sharedPreferences.getLong("login_timestamp", 0L)
         if (loginTime == 0L) return false
@@ -41,8 +38,9 @@ class PreferenceManager @Inject constructor(
         val currentCal = java.util.Calendar.getInstance().apply { timeInMillis = currentTime }
 
         // Check if Year and Day of Year are different
-        val isSameDay = loginCal.get(java.util.Calendar.YEAR) == currentCal.get(java.util.Calendar.YEAR) &&
-                loginCal.get(java.util.Calendar.DAY_OF_YEAR) == currentCal.get(java.util.Calendar.DAY_OF_YEAR)
+        val isSameDay =
+            loginCal.get(java.util.Calendar.YEAR) == currentCal.get(java.util.Calendar.YEAR) &&
+                    loginCal.get(java.util.Calendar.DAY_OF_YEAR) == currentCal.get(java.util.Calendar.DAY_OF_YEAR)
 
         if (!isSameDay) {
             clear() // Auto logout: wipe session data because the date has changed
@@ -51,7 +49,6 @@ class PreferenceManager @Inject constructor(
 
         return true
     }
-
 
 
     fun getBranch(): String {
@@ -78,12 +75,31 @@ class PreferenceManager @Inject constructor(
         return sharedPreferences.getString("user_contact", "") ?: ""
     }
 
-    fun generateTicketCode(): String {
-        val nextToken = getTokenNumber() + 1
-        saveTokenNumber(nextToken)
-        val branchCode = getBranchCode().ifBlank { "BR" }
-        val timeSuffix = System.currentTimeMillis().toString().takeLast(4)
-        return "$branchCode-SR-$timeSuffix-$nextToken"
+    fun generateTicketCode(vehicleType: String): String {
+        // Derive vehicle classification: 4W / 2W / HV
+        val vehicleCode = when {
+            vehicleType.contains("car", ignoreCase = true) ||
+            vehicleType.contains("4", ignoreCase = true) ||
+            vehicleType.contains("four", ignoreCase = true) -> "4W"
+
+            vehicleType.contains("bike", ignoreCase = true) ||
+            vehicleType.contains("2", ignoreCase = true) ||
+            vehicleType.contains("two", ignoreCase = true) ||
+            vehicleType.contains("cycle", ignoreCase = true) -> "2W"
+
+            vehicleType.contains("bus", ignoreCase = true) ||
+            vehicleType.contains("truck", ignoreCase = true) ||
+            vehicleType.contains("heavy", ignoreCase = true) -> "HV"
+
+            else -> "4W"
+        }
+
+        // MMSS: zero-padded minute (2 digits) + second (2 digits)
+        val cal = java.util.Calendar.getInstance()
+        val minute = String.format("%02d", cal.get(java.util.Calendar.MINUTE))
+        val second = String.format("%02d", cal.get(java.util.Calendar.SECOND))
+
+        return "TNX-$vehicleCode-$minute$second"
     }
 
     fun saveLastSync(timestamp: String) {

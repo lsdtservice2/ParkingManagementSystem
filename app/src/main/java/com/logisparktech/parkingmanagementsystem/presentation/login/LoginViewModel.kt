@@ -34,18 +34,22 @@ class LoginViewModel @Inject constructor(
 
             val result = loginUseCase(contact, password)
             result.onSuccess { response ->
-                val userData = response.data
-                if (userData != null) {
+                val loginData = response.data
+                if (loginData != null) {
+                    val token = loginData.accessToken ?: ""
+                    val user = loginData.user
+                    val name = user?.name ?: ""
+                    val contactNum = user?.phoneNumber ?: ""
+
                     // Save user data to preferences
                     preferenceManager.saveUserData(
-                        name = userData.name,
-                        contact = userData.contact,
-                        branch = userData.branch,
-                        code = userData.code
+                        token = token,
+                        name = name,
+                        contact = contactNum
                     )
                     
-                    // Auto sync rates after first login
-                    syncRatesUseCase(userData.branch)
+                    // Auto sync rates after first login with fallback
+                    syncRatesUseCase("MAIN")
 
                     _state.value = LoginState.Success(response)
                 } else {

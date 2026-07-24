@@ -3,18 +3,22 @@ package com.logisparktech.parkingmanagementsystem.data.remote.dto
 import com.google.gson.annotations.SerializedName
 
 data class RateResponse(
-    val success: String,
-    val message: String,
+    val success: Boolean,
+    val message: String?,
     val data: List<RateDto>
 )
 
 data class RateDto(
+    @SerializedName("_id")
     val id: String,
+    @SerializedName("vehicleType")
     val name: String,
-    val rate: String,
-    @SerializedName("exceedingLimit")
-    val exceedingMin: String,
-    val halfHourCost: String?,
-    @SerializedName("is30MinActivation")
-    val active30Min: String
+    @SerializedName("rate")
+    val rate: Double,
+    @SerializedName("exceedingMinutes")
+    val exceedingMin: String?,
+    @SerializedName("activateHalfHour")
+    val active30Min: Boolean,
+    @SerializedName("halfHourCost")
+    val halfHourCost: Double?
 )

@@ -1,10 +1,15 @@
 package com.logisparktech.parkingmanagementsystem.presentation.recent_tickets
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.ExperimentalMaterialApi
@@ -15,10 +20,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.logisparktech.parkingmanagementsystem.R
@@ -35,11 +44,15 @@ fun RecentTicketsScreen(
     val tickets by viewModel.tickets.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
+    var showSearch by remember { mutableStateOf(false) }
     var showReprintDialog by remember { mutableStateOf(false) }
     var selectedTicket by remember { mutableStateOf<TicketEntity?>(null) }
     val rateTypeMap by viewModel.rateTypeMap.collectAsState()
-    
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val searchFocusRequester = remember { FocusRequester() }
+
     val pullRefreshState = rememberPullRefreshState(
         refreshing = isLoading,
         onRefresh = { viewModel.refreshTickets() }
@@ -62,42 +75,113 @@ fun RecentTicketsScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.recent_tickets),
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent
-                ),
-                actions = {
-                    IconButton(
-                        onClick = { viewModel.syncTickets() },
-                        enabled = !isLoading
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.primary
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            stringResource(R.string.recent_tickets),
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                        } else {
+                        )
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    ),
+                    actions = {
+                        // Search toggle icon
+                        IconButton(onClick = {
+                            showSearch = !showSearch
+                            if (!showSearch) {
+                                viewModel.updateSearch("")
+                                keyboardController?.hide()
+                            }
+                        }) {
                             Icon(
-                                imageVector = Icons.Default.Sync,
-                                contentDescription = stringResource(R.string.sync_tickets),
-                                tint = MaterialTheme.colorScheme.primary
+                                imageVector = if (showSearch) Icons.Default.SearchOff else Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = if (showSearch) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        // Sync icon
+                        IconButton(
+                            onClick = { viewModel.syncTickets() },
+                            enabled = !isLoading
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Default.Sync,
+                                    contentDescription = stringResource(R.string.sync_tickets),
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    },
+                    modifier = Modifier.height(64.dp)
+                )
+
+                // Animated search bar
+                AnimatedVisibility(
+                    visible = showSearch,
+                    enter = expandVertically(),
+                    exit = shrinkVertically()
+                ) {
+                    LaunchedEffect(showSearch) {
+                        if (showSearch) searchFocusRequester.requestFocus()
                     }
-                },
-                modifier = Modifier
-                    .height(64.dp)
-            )
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { viewModel.updateSearch(it) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .focusRequester(searchFocusRequester),
+                        placeholder = {
+                            Text(
+                                text = "Search by vehicle no., ticket ID, type…",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { viewModel.updateSearch("") }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear search",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(
+                            onSearch = { keyboardController?.hide() }
+                        ),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                        )
+                    )
+                }
+            }
         },
         containerColor = MaterialTheme.colorScheme.surface
     ) { innerPadding ->
@@ -108,7 +192,7 @@ fun RecentTicketsScreen(
                 .pullRefresh(pullRefreshState)
         ) {
             if (tickets.isEmpty() && !isLoading) {
-                EmptyTicketsView()
+                EmptyTicketsView(isSearchActive = searchQuery.isNotBlank())
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(16.dp),
@@ -283,23 +367,32 @@ fun TicketCard(ticket: TicketEntity,vehicleType: String, onClick: () -> Unit) {
 }
 
 @Composable
-fun EmptyTicketsView() {
+fun EmptyTicketsView(isSearchActive: Boolean = false) {
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(
-            imageVector = Icons.Default.History,
+            imageVector = if (isSearchActive) Icons.Default.SearchOff else Icons.Default.History,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = stringResource(R.string.no_tickets_found),
+            text = if (isSearchActive) "No tickets match your search"
+                   else stringResource(R.string.no_tickets_found),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.outline
         )
+        if (isSearchActive) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Try a different vehicle number or ticket ID",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f)
+            )
+        }
     }
 }

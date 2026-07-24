@@ -27,6 +27,11 @@ class RecentTicketsViewModel @Inject constructor(
     private val rateRepository: RateRepository
 ) : ViewModel() {
 
+    private val _allTickets = MutableStateFlow<List<TicketEntity>>(emptyList())
+
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
     private val _tickets = MutableStateFlow<List<TicketEntity>>(emptyList())
     val tickets: StateFlow<List<TicketEntity>> = _tickets.asStateFlow()
 
@@ -42,12 +47,30 @@ class RecentTicketsViewModel @Inject constructor(
     init {
         loadTickets()
         loadRates()
+        // Keep filtered list in sync whenever raw data or query changes
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(_allTickets, _searchQuery) { all, query ->
+                if (query.isBlank()) all
+                else all.filter { ticket ->
+                    ticket.vehicleNumber.contains(query, ignoreCase = true) ||
+                    ticket.ticketId.contains(query, ignoreCase = true) ||
+                    (_rateTypeMap.value[ticket.rateId] ?: "").contains(query, ignoreCase = true)
+                }
+            }.collect { filtered ->
+                _tickets.value = filtered
+            }
+        }
     }
+
+    fun updateSearch(query: String) {
+        _searchQuery.value = query
+    }
+
 
     private fun loadTickets() {
         viewModelScope.launch {
             _isLoading.value = true
-            _tickets.value = getAllTicketsUseCase().sortedByDescending { it.entryTime }
+            _allTickets.value = getAllTicketsUseCase().sortedByDescending { it.entryTime }
             _isLoading.value = false
         }
     }

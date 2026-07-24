@@ -1,6 +1,7 @@
 package com.logisparktech.parkingmanagementsystem.di
 
 import com.logisparktech.parkingmanagementsystem.data.remote.ApiService
+import com.logisparktech.parkingmanagementsystem.data.local.preferences.PreferenceManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,7 +17,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
 
-    private const val BASE_URL = "https://logisparktech.com/nepvent-parking/"
+//    private const val BASE_URL = "https://logisparktech.com/nepvent-parking/"
+    private const val BASE_URL = "http://192.168.1.133:6767/"
 
     @Provides
     @Singleton
@@ -28,9 +30,21 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(loggingInterceptor: HttpLoggingInterceptor): OkHttpClient {
+    fun provideOkHttpClient(
+        loggingInterceptor: HttpLoggingInterceptor,
+        preferenceManager: PreferenceManager
+    ): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
+            .addInterceptor { chain ->
+                val original = chain.request()
+                val token = preferenceManager.getAccessToken()
+                val requestBuilder = original.newBuilder()
+                if (token.isNotEmpty()) {
+                    requestBuilder.header("Authorization", "Bearer $token")
+                }
+                chain.proceed(requestBuilder.build())
+            }
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)

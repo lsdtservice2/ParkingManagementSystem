@@ -158,7 +158,7 @@ class EntryViewModel @Inject constructor(
                 }
 
                 val currentTime = System.currentTimeMillis()
-                val ticketId = preferenceManager.generateTicketCode()
+                val ticketId = preferenceManager.generateTicketCode(selectedRate.vehicleType)
 
                 val ticket = TicketEntity(
                     ticketId = ticketId,

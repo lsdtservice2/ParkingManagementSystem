@@ -16,12 +16,12 @@ plugins {
 
 android {
     namespace = "com.logisparktech.parkingmanagementsystem"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.logisparktech.parkingmanagementsystem"
         minSdk = 23
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 2
         versionName = "1.1.0"
 
