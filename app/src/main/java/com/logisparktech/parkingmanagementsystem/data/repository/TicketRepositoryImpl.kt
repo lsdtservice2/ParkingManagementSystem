@@ -55,7 +55,6 @@ class TicketRepositoryImpl @Inject constructor(
             val unsyncedTickets = ticketDao.getUnsyncedTickets()
 //            val unsyncedTickets = ticketDao.getUnsyncedClosedTickets()
             if (unsyncedTickets.isEmpty()) return@withContext Result.success(Unit)
-
             // OPTIMIZATION: Fetch all rates once into a map
             val allRates = rateDao.getAllRates().associateBy { it.rateId }
 
@@ -84,7 +83,8 @@ class TicketRepositoryImpl @Inject constructor(
                     checkOutTime = exitDate?.let { isoFormat.format(it) } ?: "",
                     hourlyRate = rateEntity?.pricePerHour ?: 0.0,
                     totalHours = String.format(Locale.US, "%.2f", totalHours).toDouble(),
-                    totalAmountPaid = entity.amount
+                    totalAmountPaid = entity.amount,
+                    deviceUuid = entity.uuid
                 )
 
                 val response = apiService.syncParkingTicket(request)

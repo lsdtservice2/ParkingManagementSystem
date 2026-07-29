@@ -161,6 +161,7 @@ class PreferenceManager @Inject constructor(
             remove("access_token")
             remove("user_name")
             remove("user_contact")
+            remove("user_id")
             remove("login_timestamp")
             // "token_number" and "last_reset_day" are NOT removed to maintain sequence on same day
         }

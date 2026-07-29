@@ -21,6 +21,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.UUID
 
 @HiltViewModel
 class EntryViewModel @Inject constructor(
@@ -159,6 +160,7 @@ class EntryViewModel @Inject constructor(
 
                 val ticket = TicketEntity(
                     ticketId = ticketId,
+                    uuid = UUID.randomUUID().toString(),
                     vehicleNumber = vehicleNumber.trim().uppercase(Locale.US),
                     entryTime = currentTime,
                     exitTime = null,

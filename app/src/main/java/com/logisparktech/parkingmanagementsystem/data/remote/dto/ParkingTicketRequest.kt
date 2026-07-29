@@ -9,5 +9,6 @@ data class ParkingTicketRequest(
     val checkOutTime: String,
     val hourlyRate: Double,
     val totalHours: Double,
-    val totalAmountPaid: Double
-)
+    val totalAmountPaid: Double,
+    val deviceUuid: String,
+    )

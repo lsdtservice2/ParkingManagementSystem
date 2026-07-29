@@ -6,6 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "tickets")
 data class TicketEntity(
     @PrimaryKey val ticketId: String,
+    val uuid: String,
     val vehicleNumber: String,
     val entryTime: Long,
     val exitTime: Long?,

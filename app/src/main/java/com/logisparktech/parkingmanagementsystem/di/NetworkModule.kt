@@ -19,6 +19,7 @@ object NetworkModule {
 
 //    private const val BASE_URL = "https://logisparktech.com/nepvent-parking/"
     private const val BASE_URL = "http://192.168.1.133:6767/"
+//    private const val BASE_URL = "https://nepventparking.logisparktech.com/api/"
 
     @Provides
     @Singleton

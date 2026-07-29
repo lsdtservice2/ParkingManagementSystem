@@ -23,7 +23,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             "parking_db"
-        ).build()
+        )
+            .fallbackToDestructiveMigration(false)
+            .build()
     }
 
     @Provides
