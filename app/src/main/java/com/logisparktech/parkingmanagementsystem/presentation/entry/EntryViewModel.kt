@@ -185,6 +185,7 @@ class EntryViewModel @Inject constructor(
                         vehicleType = selectedRate.vehicleType,
                         entryDate = dateSdf.format(Date(currentTime)),
                         entryTime = timeSdf.format(Date(currentTime)),
+                        rate = selectedRate.pricePerHour,
                         qrCodeContent = ticketId
                     )
                 } catch (printError: Exception) {

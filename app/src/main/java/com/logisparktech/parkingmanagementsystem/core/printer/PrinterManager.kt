@@ -58,12 +58,40 @@ class PrinterManager @Inject constructor(
         }
     }
 
+    /**
+     * Helper to get the current printer's printable width in dots.
+     */
+    private fun getPaperWidthDots(): Int {
+        return try {
+            // Sunmi getPrinterPaper() typically returns:
+            // 1: 80mm (576 dots)
+            // 2: 58mm (384 dots)
+            // 3: 50mm (320 dots) - on specific models
+            val paperType = sunmiPrinterService?.printerPaper ?: 3 // Default to 50mm per user hardware
+            Log.d(TAG, "Detected paper type: $paperType")
+            
+            when (paperType) {
+                1 -> QrPrintHelper.PAPER_WIDTH_80MM
+                2 -> QrPrintHelper.PAPER_WIDTH_58MM
+                3 -> QrPrintHelper.PAPER_WIDTH_50MM
+                else -> {
+                    // Default to 50mm as requested by the user
+                    QrPrintHelper.PAPER_WIDTH_50MM
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to get paper width, defaulting to 50mm", e)
+            QrPrintHelper.PAPER_WIDTH_50MM
+        }
+    }
+
     fun printTicket(
         ticketId: String,
         vehicleNumber: String,
         vehicleType: String,
         entryDate: String,
         entryTime: String,
+        rate: Double? = null,
         qrCodeContent: String? = null,
         qrCodeBitmap: Bitmap? = null
     ) {
@@ -74,22 +102,25 @@ class PrinterManager @Inject constructor(
         }
 
         try {
+            val paperWidth = getPaperWidthDots()
+            val divider = QrPrintHelper.getDivider(paperWidth)
+
             service.enterPrinterBuffer(true)
             service.printerInit(resultCallback)
 
-//            val safeBranch = branchName.ifBlank { "Parking System" }
             val safeBranch = "PARKING TICKET"
 
             // 🔷 HEADER
             service.setAlignment(1, resultCallback) // Center
-            service.printTextWithFont(safeBranch + "\n", "", 36f, resultCallback)
-//            service.printTextWithFont("PARKING TICKET\n", "", 30f, resultCallback)
+            val headerSize = if (paperWidth <= QrPrintHelper.PAPER_WIDTH_50MM) 30f else 36f
+            service.printTextWithFont(safeBranch + "\n", "", headerSize, resultCallback)
 
-            service.printText("-------------------------------\n", resultCallback)
+            service.printText(divider, resultCallback)
 
-            // 🔷 QR CODE (Top center looks better)
+            // 🔷 QR CODE
             if (!qrCodeContent.isNullOrBlank()) {
-                service.printQRCode(qrCodeContent, 6, 3, resultCallback)
+                val moduleSize = QrPrintHelper.calculateModuleSize(qrCodeContent, 3, paperWidth)
+                service.printQRCode(qrCodeContent, moduleSize, 3, resultCallback)
             } else if (qrCodeBitmap != null) {
                 service.printBitmap(qrCodeBitmap, resultCallback)
             }
@@ -99,17 +130,21 @@ class PrinterManager @Inject constructor(
             // 🔷 VEHICLE INFO
             service.setAlignment(0, resultCallback) // Left
             service.printTextWithFont("Ticket No  : $ticketId\n", "", 28f, resultCallback)
-            service.printText("-------------------------------\n", resultCallback)
+            service.printText(divider, resultCallback)
             service.printTextWithFont("Vehicle No : $vehicleNumber\n", "", 28f, resultCallback)
             service.printTextWithFont("Type       : $vehicleType\n", "", 28f, resultCallback)
 
-            service.printText("-------------------------------\n", resultCallback)
+            if (rate != null && rate > 0) {
+                service.printTextWithFont("Rate       : रु. ${String.format(Locale.US, "%.2f", rate)} / hr\n", "", 28f, resultCallback)
+            }
+
+            service.printText(divider, resultCallback)
 
             // 🔷 TIME INFO
             service.printTextWithFont("Entry Date : $entryDate\n", "", 26f, resultCallback)
             service.printTextWithFont("Entry Time : $entryTime\n", "", 26f, resultCallback)
 
-            service.printText("-------------------------------\n", resultCallback)
+            service.printText(divider, resultCallback)
 
             // 🔷 FOOTER
             service.setAlignment(1, resultCallback)
@@ -143,23 +178,26 @@ class PrinterManager @Inject constructor(
         }
 
         try {
+            val paperWidth = getPaperWidthDots()
+            val divider = QrPrintHelper.getDivider(paperWidth)
+
             service.enterPrinterBuffer(true)
             service.printerInit(resultCallback)
 
-//            val safeBranch = branchName.ifBlank { "Parking System" }
             val safeBranch = "PARKING RECEIPT"
 
             // 🔷 HEADER
             service.setAlignment(1, resultCallback)
-            service.printTextWithFont("$safeBranch\n", "", 36f, resultCallback)
-//            service.printTextWithFont("PARKING RECEIPT\n", "", 30f, resultCallback)
+            val headerSize = if (paperWidth <= QrPrintHelper.PAPER_WIDTH_50MM) 30f else 36f
+            service.printTextWithFont("$safeBranch\n", "", headerSize, resultCallback)
 
-            service.printText("--------------------------------\n", resultCallback)
+            service.printText(divider, resultCallback)
 
             // 🔷 OPTIONAL TICKET ID
             if (!ticketId.isNullOrBlank()) {
+                service.setAlignment(0, resultCallback)
                 service.printTextWithFont("Ticket ID : $ticketId\n", "", 24f, resultCallback)
-                service.printText("--------------------------------\n", resultCallback)
+                service.printText(divider, resultCallback)
             }
 
             // 🔷 DETAILS
@@ -175,22 +213,22 @@ class PrinterManager @Inject constructor(
                 service.printTextWithFont("Duration   : $duration\n", "", 26f, resultCallback)
             }
 
-            service.printText("--------------------------------\n", resultCallback)
+            service.printText(divider, resultCallback)
 
             // 🔷 TOTAL AMOUNT (HIGHLIGHT)
             service.setAlignment(1, resultCallback)
             service.printTextWithFont("TOTAL AMOUNT\n", "", 26f, resultCallback)
+            val amountSize = if (paperWidth <= QrPrintHelper.PAPER_WIDTH_50MM) 34f else 40f
             service.printTextWithFont(
                 "रु. ${String.format(Locale.US, "%.2f", amount)}\n",
                 "",
-                40f,
+                amountSize,
                 resultCallback
             )
 
-            service.printText("--------------------------------\n", resultCallback)
+            service.printText(divider, resultCallback)
 
             // 🔷 FOOTER
-//            service.printTextWithFont("Paid Successfully\n", "", 24f, resultCallback)
             service.printTextWithFont("Thank you! Visit again\n", "", 24f, resultCallback)
 
             // 🔷 FEED PAPER
