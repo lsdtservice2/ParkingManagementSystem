@@ -1,25 +1,38 @@
-# IntelliJ IDEA / Android Studio
+# Gradle and Build
+.gradle/
+build/
+/*/build/
+.kotlin/
+
+# IDE - IntelliJ IDEA / Android Studio
+.idea/
 *.iml
 *.iws
 *.ipr
-/.idea/
-.gradle
-.kotlin
-/local.properties
+*.swp
 .DS_Store
-/build
-app/build
-app/release
-/captures
-.externalNativeBuild
-.cxx
-.kotlin
 
-# Signing files
-key.properties
+# Local Configuration
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+lint-baseline.xml
+app/release/
+
+# Signing & Keys (Security)
 *.jks
-
 *.keystore
-*.google_play_track_content
+key.properties
 pos-release-key
+parking-handheld
+*.google_play_track_content
+
+# Logs
+*.log
+
+# Optional: Add these if you want to ignore them
+# google-services.json
+# .idea/modules.xml
+# .idea/workspace.xml
 
