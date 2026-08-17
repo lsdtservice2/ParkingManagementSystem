@@ -7,6 +7,7 @@ import com.logisparktech.parkingmanagementsystem.domain.use_case.GetAllTicketsUs
 import com.logisparktech.parkingmanagementsystem.domain.use_case.SyncParkingSalesUseCase
 import com.logisparktech.parkingmanagementsystem.core.printer.PrinterManager
 import com.logisparktech.parkingmanagementsystem.domain.repository.RateRepository
+import com.logisparktech.parkingmanagementsystem.data.local.preferences.PreferenceManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -25,7 +27,8 @@ class RecentTicketsViewModel @Inject constructor(
     private val getAllTicketsUseCase: GetAllTicketsUseCase,
     private val syncParkingSalesUseCase: SyncParkingSalesUseCase,
     private val printerManager: PrinterManager,
-    private val rateRepository: RateRepository
+    private val rateRepository: RateRepository,
+    private val preferenceManager: PreferenceManager
 ) : ViewModel() {
 
     private val _allTickets = MutableStateFlow<List<TicketEntity>>(emptyList())
@@ -131,13 +134,33 @@ class RecentTicketsViewModel @Inject constructor(
                     duration = null // Duration can be calculated if needed
                 )
             } else {
+                val qrJson = JSONObject().apply {
+                    put("ticketNumber", ticket.ticketId)
+                    put("tokenNumber", ticket.ticketId) // Fallback
+                    put("vehicleNumber", ticket.vehicleNumber)
+                    put("vehicleType", vehicleType)
+                    put("checkInTime", "$entryDate $entryTime")
+                    put("location", "MAIN")
+                    put("rate", JSONObject().apply {
+                        put("pricePerHour", rate?.pricePerHour ?: 0.0)
+                        put("halfHourCost", rate?.halfHourCost ?: 0.0)
+                        put("exceedingMin", rate?.exceedingMin ?: 0)
+                        put("active30Min", rate?.active30Min ?: false)
+                    })
+                    put("operator", preferenceManager.getName())
+                    put("uniqueTicketId", ticket.uuid)
+                    put("metadata", JSONObject().apply {
+                        put("isSynced", ticket.isSynced)
+                    })
+                }
+
                 printerManager.printTicket(
                     ticketId = ticket.ticketId,
                     vehicleNumber = ticket.vehicleNumber,
                     vehicleType = vehicleType,
                     entryDate = entryDate,
                     entryTime = entryTime,
-                    qrCodeContent = ticket.ticketId
+                    qrCodeContent = qrJson.toString()
                 )
             }
         }

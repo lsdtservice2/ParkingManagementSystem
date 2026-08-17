@@ -18,8 +18,9 @@ import javax.inject.Singleton
 object NetworkModule {
 
 //    private const val BASE_URL = "https://logisparktech.com/nepvent-parking/"
-    private const val BASE_URL = "http://192.168.1.133:6767/"
+//    private const val BASE_URL = "http://192.168.1.133:6767/"
 //    private const val BASE_URL = "https://nepventparking.logisparktech.com/api/"
+    private const val BASE_URL = "https://parking.nepvent.com/api/"
 
     @Provides
     @Singleton
@@ -53,9 +54,9 @@ object NetworkModule {
                 }
                 response
             }
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.MINUTES)
+            .readTimeout(5, TimeUnit.MINUTES)
+            .writeTimeout(5, TimeUnit.MINUTES)
             .retryOnConnectionFailure(true)
             .build()
     }

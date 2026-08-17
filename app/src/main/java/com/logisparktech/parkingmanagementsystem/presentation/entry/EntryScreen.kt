@@ -277,7 +277,7 @@ fun EntryScreen(
                         Button(
                             onClick = {
                                 selectedRate?.let {
-                                    viewModel.createTicket(vehicleNumber, it.rateId)
+                                    viewModel.createTicket(vehicleNumber.trim(), it.rateId)
                                 }
                             },
                             modifier = Modifier

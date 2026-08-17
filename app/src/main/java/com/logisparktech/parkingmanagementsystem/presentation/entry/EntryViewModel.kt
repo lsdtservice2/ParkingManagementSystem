@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 import com.logisparktech.parkingmanagementsystem.core.printer.PrinterManager
+import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -179,13 +180,38 @@ class EntryViewModel @Inject constructor(
                     val dateSdf = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = nepalTimeZone }
                     val timeSdf = SimpleDateFormat("hh:mm:ss a", Locale.US).apply { timeZone = nepalTimeZone }
 
+                    val entryDate = dateSdf.format(Date(currentTime))
+                    val entryTime = timeSdf.format(Date(currentTime))
+
+                    // 🔷 GENERATE STRUCTURED QR DATA
+                    val qrJson = JSONObject().apply {
+                        put("ticketNumber", ticketId)
+                        put("tokenNumber", preferenceManager.getTokenNumber().toString())
+                        put("vehicleNumber", ticket.vehicleNumber)
+                        put("vehicleType", selectedRate.vehicleType)
+                        put("checkInTime", "$entryDate $entryTime")
+                        put("entryTimeMillis", currentTime)
+                        put("rate", JSONObject().apply {
+                            put("id", selectedRate.rateId)
+                            put("pricePerHour", selectedRate.pricePerHour)
+                            put("halfHourCost", selectedRate.halfHourCost)
+                            put("exceedingMin", selectedRate.exceedingMin)
+                            put("active30Min", selectedRate.active30Min)
+                        })
+                        put("operator", preferenceManager.getName())
+                        put("uniqueTicketId", ticket.uuid)
+                        put("metadata", JSONObject().apply {
+                            put("isSynced", false)
+                        })
+                    }
+
                     printerManager.printTicket(
                         ticketId = ticketId,
                         vehicleNumber = ticket.vehicleNumber,
                         vehicleType = selectedRate.vehicleType,
-                        entryDate = dateSdf.format(Date(currentTime)),
-                        entryTime = timeSdf.format(Date(currentTime)),
-                        qrCodeContent = ticketId
+                        entryDate = entryDate,
+                        entryTime = entryTime,
+                        qrCodeContent = qrJson.toString()
                     )
                 } catch (printError: Exception) {
                     // IMPORTANT: Ticket is saved, but print failed.

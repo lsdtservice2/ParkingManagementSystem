@@ -7,6 +7,7 @@ interface TicketRepository {
     suspend fun getTicketById(ticketId: String): TicketEntity?
     suspend fun getActiveTicketByVehicleNumber(vehicleNumber: String): List<TicketEntity>
     suspend fun closeTicket(ticketId: String, exitTime: Long, amount: Double)
+
     suspend fun getUnsyncedClosedTickets(): List<TicketEntity>
     suspend fun markTicketAsSynced(ticketId: String)
     suspend fun syncTicketsToServer(): Result<Unit>

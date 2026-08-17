@@ -74,47 +74,48 @@ class PrinterManager @Inject constructor(
         }
 
         try {
-            service.enterPrinterBuffer(true)
             service.printerInit(resultCallback)
+            service.enterPrinterBuffer(true)
 
-//            val safeBranch = branchName.ifBlank { "Parking System" }
             val safeBranch = "PARKING TICKET"
 
             // 🔷 HEADER
             service.setAlignment(1, resultCallback) // Center
-            service.printTextWithFont(safeBranch + "\n", "", 36f, resultCallback)
-//            service.printTextWithFont("PARKING TICKET\n", "", 30f, resultCallback)
+            service.printTextWithFont(safeBranch + "\n", "", 30f, resultCallback)
 
-            service.printText("-------------------------------\n", resultCallback)
+            service.printText("--------------------------------\n", resultCallback)
 
-            // 🔷 QR CODE (Top center looks better)
+            // 🔷 QR CODE
             if (!qrCodeContent.isNullOrBlank()) {
-                service.printQRCode(qrCodeContent, 6, 3, resultCallback)
+                service.setAlignment(1, resultCallback)
+                // Use module size 3 for large JSON data to fit on 58mm paper (V3 compatibility)
+                service.printQRCode(qrCodeContent, 3, 1, resultCallback)
+                service.printText("\n", resultCallback)
             } else if (qrCodeBitmap != null) {
+                service.setAlignment(1, resultCallback)
                 service.printBitmap(qrCodeBitmap, resultCallback)
+                service.printText("\n", resultCallback)
             }
-
-            service.printText("\n", resultCallback)
 
             // 🔷 VEHICLE INFO
             service.setAlignment(0, resultCallback) // Left
-            service.printTextWithFont("Ticket No  : $ticketId\n", "", 28f, resultCallback)
-            service.printText("-------------------------------\n", resultCallback)
-            service.printTextWithFont("Vehicle No : $vehicleNumber\n", "", 28f, resultCallback)
-            service.printTextWithFont("Type       : $vehicleType\n", "", 28f, resultCallback)
+            service.printTextWithFont("Ticket No  : $ticketId\n", "", 26f, resultCallback)
+            service.printText("--------------------------------\n", resultCallback)
+            service.printTextWithFont("Vehicle No : $vehicleNumber\n", "", 26f, resultCallback)
+            service.printTextWithFont("Type       : $vehicleType\n", "", 26f, resultCallback)
 
-            service.printText("-------------------------------\n", resultCallback)
+            service.printText("--------------------------------\n", resultCallback)
 
             // 🔷 TIME INFO
-            service.printTextWithFont("Entry Date : $entryDate\n", "", 26f, resultCallback)
-            service.printTextWithFont("Entry Time : $entryTime\n", "", 26f, resultCallback)
+            service.printTextWithFont("Entry Date : $entryDate\n", "", 24f, resultCallback)
+            service.printTextWithFont("Entry Time : $entryTime\n", "", 24f, resultCallback)
 
-            service.printText("-------------------------------\n", resultCallback)
+            service.printText("--------------------------------\n", resultCallback)
 
             // 🔷 FOOTER
             service.setAlignment(1, resultCallback)
-            service.printTextWithFont("Please keep this ticket safe\n", "", 24f, resultCallback)
-            service.printTextWithFont("Thank you!\n", "", 24f, resultCallback)
+            service.printTextWithFont("Please keep this ticket safe\n", "", 22f, resultCallback)
+            service.printTextWithFont("Thank you!\n", "", 22f, resultCallback)
 
             // 🔷 FEED PAPER
             service.lineWrap(4, resultCallback)
@@ -143,16 +144,14 @@ class PrinterManager @Inject constructor(
         }
 
         try {
-            service.enterPrinterBuffer(true)
             service.printerInit(resultCallback)
+            service.enterPrinterBuffer(true)
 
-//            val safeBranch = branchName.ifBlank { "Parking System" }
             val safeBranch = "PARKING RECEIPT"
 
             // 🔷 HEADER
             service.setAlignment(1, resultCallback)
-            service.printTextWithFont("$safeBranch\n", "", 36f, resultCallback)
-//            service.printTextWithFont("PARKING RECEIPT\n", "", 30f, resultCallback)
+            service.printTextWithFont("$safeBranch\n", "", 30f, resultCallback)
 
             service.printText("--------------------------------\n", resultCallback)
 
@@ -177,21 +176,20 @@ class PrinterManager @Inject constructor(
 
             service.printText("--------------------------------\n", resultCallback)
 
-            // 🔷 TOTAL AMOUNT (HIGHLIGHT)
+            // 🔷 TOTAL AMOUNT
             service.setAlignment(1, resultCallback)
-            service.printTextWithFont("TOTAL AMOUNT\n", "", 26f, resultCallback)
+            service.printTextWithFont("TOTAL AMOUNT\n", "", 24f, resultCallback)
             service.printTextWithFont(
                 "रु. ${String.format(Locale.US, "%.2f", amount)}\n",
                 "",
-                40f,
+                36f,
                 resultCallback
             )
 
             service.printText("--------------------------------\n", resultCallback)
 
             // 🔷 FOOTER
-//            service.printTextWithFont("Paid Successfully\n", "", 24f, resultCallback)
-            service.printTextWithFont("Thank you! Visit again\n", "", 24f, resultCallback)
+            service.printTextWithFont("Thank you! Visit again\n", "", 22f, resultCallback)
 
             // 🔷 FEED PAPER
             service.lineWrap(4, resultCallback)
